@@ -1,0 +1,4 @@
+exclude:
+  global:
+    - /khulnasoft-root-excluded
+    - khulnasoft-deep-excluded

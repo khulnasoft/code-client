@@ -1,0 +1,6 @@
+exclude:
+  global:
+    - /khulnasoft-excluded-file.ext
+    - khulnasoft-excluded-dir/
+    - /sub/khulnasoft-excluded-file.js
+    - /gitignore-unexcluded-dir/khulnasoft-excluded-dir

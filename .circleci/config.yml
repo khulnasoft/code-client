@@ -1,0 +1,103 @@
+version: 2.1
+
+orbs:
+  prodsec: khulnasoft/prodsec-orb@1.0
+
+jobs:
+  test:
+    parameters:
+      node_version:
+        type: string
+      package-lock:
+        type: string
+    working_directory: ~/code-sdk
+    docker:
+      - image: cimg/node:<< parameters.node_version >>
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v2-{{ .Branch }}-{{ .Revision }}-<< parameters.node_version >>>-<< parameters.package-lock >>>
+      - when:
+          condition: << parameters.package-lock >> == "locked-dependencies"
+          steps:
+            - run:
+                name: Install
+                command: npm install
+      - unless:
+          condition: << parameters.package-lock >>
+          steps:
+            - run:
+                name: Install without locked dependencies
+                command: npm install --no-package-lock
+      - save_cache:
+          key: v2-{{ .Branch }}-{{ .Revision }}-<< parameters.node_version >>-<< parameters.package-lock >>>
+          paths:
+            - node_modules
+      - run: npm run test
+
+  lint:
+    parameters:
+      node_version:
+        type: string
+    working_directory: ~/code-sdk
+    docker:
+      - image: cimg/node:<< parameters.node_version >>
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v2-{{ .Branch }}-{{ .Revision }}-<< parameters.node_version >>
+      - run:
+          name: Install
+          command: npm install
+      - run: npm run lint
+
+  release:
+    parameters:
+      node_version:
+        type: string
+    working_directory: ~/code-sdk
+    docker:
+      - image: cimg/node:<< parameters.node_version >>
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v2-{{ .Branch }}-{{ .Revision }}-<< parameters.node_version >>
+      - run:
+          name: Install
+          command: npm install
+      - run:
+          name: Publish to GitHub
+          ## this is a work around, as it seems that the latest version has issues with < node14
+          command: npx semantic-release@16
+
+workflows:
+  default_workflow:
+    jobs:
+      - prodsec/secrets-scan:
+          context:
+            - khulnasoft-bot-slack
+          channel: code-alerts
+      - lint:
+          node_version: '12.22.7'
+          requires:
+            - prodsec/secrets-scan
+      - test:
+          matrix:
+            parameters:
+              node_version: ['10.24.0', '12.22.7']
+              package-lock: ['locked-dependencies', 'no-package-lock']
+          context: nodejs-install
+          requires:
+            - lint
+      - release:
+          node_version: '12.22.7'
+          context: nodejs-lib-release
+          requires:
+            - lint
+          filters:
+            branches:
+              only:
+                - master

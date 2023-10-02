@@ -1,0 +1,7 @@
+mode_nodules/
+/models/
+**/controllers/
+
+ignored
+!not/ignored
+*.jsx
