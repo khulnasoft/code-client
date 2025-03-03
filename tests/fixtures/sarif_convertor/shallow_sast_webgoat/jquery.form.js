@@ -394,7 +394,7 @@
       s.context = s.context || s;
       id = 'jqFormIO' + new Date().getTime();
       if (s.iframeTarget) {
-        $io = $(s.iframeTarget);
+        $io = $.find(s.iframeTarget);
         n = $io.attr2('name');
         if (!n) {
           $io.attr2('name', id);
